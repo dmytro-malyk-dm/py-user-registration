@@ -1,13 +1,11 @@
 from fastapi import FastAPI
+from src.routers.user import router as auth_router
 
-app = FastAPI()
+app = FastAPI(title="User registration API", debug=True)
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World"}
+def read_root():
+    return {"status": "Backend is running"}
 
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
