@@ -1,14 +1,21 @@
 from datetime import datetime, timedelta
-from src.core.config import settings
+from user_service.src.core.config import settings
 from jose import jwt, JWTError
 
 
-def create_access_token(user_id: int, email: str) -> str:
+def create_access_token(
+    user_id: int,
+    email: str,
+    name: str,
+    surname: str,
+    date_of_birthday: str,
+) -> str:
     """
     Create JWT access token with full user information.
 
-    Token payload includes: id, email, user_group, is_active.
-    This eliminates need for database queries in get_current_user dependency.
+    Token payload includes: id, email, name, surname, date_of_birthday.
+    This eliminates need for database queries in pdf_service — all data
+    is embedded in the token itself.
 
     Returns:
         JWT access token string
@@ -18,6 +25,9 @@ def create_access_token(user_id: int, email: str) -> str:
     to_encode = {
         "sub": str(user_id),
         "email": email,
+        "name": name,
+        "surname": surname,
+        "date_of_birthday": date_of_birthday,
         "exp": expire,
         "type": "access",
     }
@@ -45,4 +55,3 @@ def decode_access_token(token: str) -> dict | None:
 
     except JWTError:
         return None
-

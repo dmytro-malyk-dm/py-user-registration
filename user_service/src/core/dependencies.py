@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from src.schemas.user import CurrentUserDTO
-from src.security.token_manager import decode_access_token
+from user_service.src.user.schemas import CurrentUserDTO
+from user_service.src.security.token_manager import decode_access_token
 
 security = HTTPBearer()
 

@@ -3,9 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database.models.user import UserModel
-from src.schemas.user import UserRegisterSchema, CurrentUserDTO
-from src.security.password import hash_password
+from user_service.src.user.models import UserModel
+from user_service.src.user.schemas import UserRegisterSchema
+from user_service.src.security.password import hash_password
 
 
 async def create_user(session: AsyncSession, user_data: UserRegisterSchema) -> UserModel:

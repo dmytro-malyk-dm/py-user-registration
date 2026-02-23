@@ -1,21 +1,42 @@
 services:
-  app:
-    build: .
-    container_name: user_registration_app
+  user_service:
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    container_name: user_service
     command: >
-      bash -c "alembic upgrade head &&
-              uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
+      bash -c "cd user_service &&
+               alembic upgrade head &&
+               cd .. &&
+               uvicorn user_service.src.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      POSTGRES_HOST: db
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - .:/app
     networks:
-       - app-network
+      - app-network
+
+  pdf_service:
+    build:
+      context: .
+      dockerfile: pdf_service/Dockerfile
+    container_name: pdf_service
+    command: uvicorn pdf_service.src.main:app --host 0.0.0.0 --port 8001 --reload
+    env_file:
+      - .env
+
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
   db:
     image: postgres:16-alpine
     container_name: user_registration_db
@@ -23,7 +44,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-online_cinema}
+      POSTGRES_DB: ${POSTGRES_DB:-user_registration}
     ports:
       - "5432:5432"
     volumes:
