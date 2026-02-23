@@ -35,3 +35,10 @@ async def get_user_by_email(session: AsyncSession, email: str) -> UserModel | No
         select(UserModel).where(UserModel.email == email)
     )
     return result.scalar_one_or_none()
+
+
+async def get_user_by_id(session: AsyncSession, user_id: int) -> UserModel | None:
+    result = await session.execute(
+        select(UserModel).where(UserModel.id == user_id)
+    )
+    return result.scalar_one_or_none()

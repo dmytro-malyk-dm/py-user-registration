@@ -1,4 +1,5 @@
 
+from io import BytesIO
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,10 +7,14 @@ from fastapi import (
     status,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.crud.user import create_user, get_user_by_email
+from src.crud.user import create_user, get_user_by_email, get_user_by_id
 from src.database.database import get_async_session
-from src.schemas.user import UserRegisterSchema, UserResponseSchema, UserLoginSchema, UserLoginResponseSchema
+from src.schemas.user import UserRegisterSchema, UserResponseSchema, UserLoginSchema, UserLoginResponseSchema, \
+    CurrentUserDTO
 from src.security.password import verify_password
+from fastapi.responses import StreamingResponse
+from src.secvices.pdf import generate_user_pdf
+from src.core.dependencies import get_current_user
 from src.security.token_manager import create_access_token
 
 router = APIRouter(prefix="/user", tags=["User"])
@@ -77,3 +82,26 @@ async def login(
         email=user.email
     )
     return UserLoginResponseSchema(access_token=token)
+
+
+@router.get("/profile/pdf")
+async def download_profile_pdf(
+    current_user: CurrentUserDTO = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user = await get_user_by_id(session, current_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    pdf_bytes = generate_user_pdf(
+        name=user.name,
+        surname=user.surname,
+        email=user.email,
+        date_of_birthday=user.date_of_birthday,
+    )
+
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=profile.pdf"}
+    )
