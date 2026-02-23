@@ -1,0 +1,11 @@
+services:
+  user_service_test:
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    container_name: user_service_tests
+    environment:
+      SECRET_KEY_ACCESS: test-secret-key
+      JWT_SIGNING_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    command: pytest user_service/src/tests/ -v
