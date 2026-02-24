@@ -1,0 +1,98 @@
+services:
+  user_service:
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    container_name: user_service
+    command: >
+      bash -c "cd user_service &&
+               alembic upgrade head &&
+               cd .. &&
+               uvicorn user_service.src.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+  pdf_service:
+    build:
+      context: .
+      dockerfile: pdf_service/Dockerfile
+    container_name: pdf_service
+    command: uvicorn pdf_service.src.main:app --host 0.0.0.0 --port 8001 --reload
+    env_file:
+      - .env
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/pdf-queue
+      S3_BUCKET_NAME: pdf-bucket
+    depends_on:
+      - localstack
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+  pdf_saver:
+    build:
+      context: .
+      dockerfile: pdf_service/Dockerfile
+    container_name: pdf_saver
+    command: python pdf_service/worker.py
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/pdf-queue
+      S3_BUCKET_NAME: pdf-bucket
+    depends_on:
+      - localstack
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: user_registration_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-user_registration}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-user_registration}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs
+    volumes:
+      - ./pdf_service/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
