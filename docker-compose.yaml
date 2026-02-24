@@ -31,7 +31,29 @@ services:
     command: uvicorn pdf_service.src.main:app --host 0.0.0.0 --port 8001 --reload
     env_file:
       - .env
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/pdf-queue
+      S3_BUCKET_NAME: pdf-bucket
+    depends_on:
+      - localstack
+    volumes:
+      - .:/app
+    networks:
+      - app-network
 
+  pdf_saver:
+    build:
+      context: .
+      dockerfile: pdf_service/Dockerfile
+    container_name: pdf_saver
+    command: python pdf_service/worker.py
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/pdf-queue
+      S3_BUCKET_NAME: pdf-bucket
+    depends_on:
+      - localstack
     volumes:
       - .:/app
     networks:
@@ -54,6 +76,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs
+    volumes:
+      - ./pdf_service/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
     networks:
       - app-network
 

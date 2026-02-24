@@ -35,6 +35,23 @@ async def pdf_profile(
     )
 
 
+@app.post(
+    "/api/v1/pdf/save",
+    tags=["PDF"],
+    summary="Save PDF to S3 via SQS",
+    description="Queues the user's profile PDF for saving to S3 via SQS.",
+)
+async def pdf_save(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://pdf_service:8001/api/v1/pdf/save",
+            headers={"Authorization": f"Bearer {credentials.credentials}"},
+        )
+    return response.json()
+
+
 @app.get("/")
 def read_root():
     return {"status": "Backend is running"}
