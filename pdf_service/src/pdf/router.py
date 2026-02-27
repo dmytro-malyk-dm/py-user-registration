@@ -30,6 +30,18 @@ def decode_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
         )
 
 
+def make_public_url(presigned_url: str) -> str:
+    """
+    Replace the internal Docker hostname in a presigned URL with the
+    public-facing URL so it works in the browser.
+
+    Example:
+        http://localstack:4566/pdf-bucket/profiles/1.pdf?X-Amz-...
+        → http://localhost:4566/pdf-bucket/profiles/1.pdf?X-Amz-...
+    """
+    return presigned_url.replace(settings.AWS_ENDPOINT_URL, settings.S3_PUBLIC_URL)
+
+
 @router.get("/profile")
 async def download_profile_pdf(payload: dict = Depends(decode_token)):
     pdf_bytes = generate_user_pdf(
@@ -75,7 +87,9 @@ async def save_pdf_to_s3(payload: dict = Depends(decode_token)):
         ExpiresIn=3600,
     )
 
+    public_url = make_public_url(presigned_url)
+
     return {
         "detail": "PDF queued for saving to S3",
-        "s3_url": presigned_url,
+        "s3_url": public_url,
     }

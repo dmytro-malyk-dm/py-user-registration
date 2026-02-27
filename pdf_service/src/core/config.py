@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     AWS_ENDPOINT_URL: str
     SQS_QUEUE_URL: str
     S3_BUCKET_NAME: str
+    S3_PUBLIC_URL: str = "http://localhost:4566"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
